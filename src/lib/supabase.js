@@ -1,70 +1,64 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Supabase keys not found! Check Vercel environment variables.')
-}
+export const supabase = createClient(supabaseUrl, supabaseKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// ============================================
+// 👤 ПОЛЬЗОВАТЕЛИ
+// ============================================
 
-// Функция для получения или создания пользователя
 export async function getOrCreateUser(telegramUser) {
-  if (!telegramUser?.id) {
-    console.error('No Telegram user data')
-    return null
-  }
+  if (!telegramUser) return null
 
   try {
-    // Проверяем — есть ли уже такой пользователь
-    const { data: existingUser, error: fetchError } = await supabase
+    // Ищем пользователя
+    const { data: existingUser, error: findError } = await supabase
       .from('users')
       .select('*')
       .eq('telegram_id', telegramUser.id)
       .maybeSingle()
 
-    if (fetchError) {
-      console.error('Error fetching user:', fetchError)
+    if (findError) {
+      console.error('Error finding user:', findError)
       return null
     }
 
-    // Если есть — возвращаем
     if (existingUser) {
       console.log('✅ User found:', existingUser)
       return existingUser
     }
 
-    // Если нет — создаём нового
-    const { data: newUser, error: insertError } = await supabase
+    // Создаём нового
+    const { data: newUser, error: createError } = await supabase
       .from('users')
       .insert({
         telegram_id: telegramUser.id,
         username: telegramUser.username || null,
         first_name: telegramUser.first_name || null,
         last_name: telegramUser.last_name || null,
-        language_code: telegramUser.language_code || 'ru',
-        is_premium: false
       })
       .select()
       .single()
 
-    if (insertError) {
-      console.error('Error creating user:', insertError)
+    if (createError) {
+      console.error('Error creating user:', createError)
       return null
     }
 
-    console.log('✨ New user created:', newUser)
+    console.log('✅ User created:', newUser)
     return newUser
   } catch (err) {
     console.error('Exception in getOrCreateUser:', err)
     return null
   }
-  // ============================================
+}
+
+// ============================================
 // 📂 КАТЕГОРИИ
 // ============================================
 
-// Получить все категории (расходы + доходы)
 export async function getCategories() {
   try {
     const { data, error } = await supabase
@@ -89,7 +83,6 @@ export async function getCategories() {
 // 💸 ТРАНЗАКЦИИ
 // ============================================
 
-// Добавить транзакцию
 export async function addTransaction({ userId, categoryId, amount, type, description }) {
   try {
     const { data, error } = await supabase
@@ -98,7 +91,7 @@ export async function addTransaction({ userId, categoryId, amount, type, descrip
         user_id: userId,
         category_id: categoryId,
         amount: amount,
-        type: type, // 'expense' или 'income'
+        type: type,
         description: description || null,
       })
       .select()
@@ -117,7 +110,6 @@ export async function addTransaction({ userId, categoryId, amount, type, descrip
   }
 }
 
-// Получить все транзакции пользователя (с категориями)
 export async function getTransactions(userId) {
   try {
     const { data, error } = await supabase
@@ -147,7 +139,6 @@ export async function getTransactions(userId) {
   }
 }
 
-// Подсчитать баланс пользователя
 export async function getBalance(userId) {
   try {
     const { data, error } = await supabase
