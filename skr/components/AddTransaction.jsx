@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getCategories, addTransaction } from '../lib/supabase'
 
 function AddTransaction({ userId, onClose, onSuccess }) {
-  const [type, setType] = useState('expense') // 'expense' или 'income'
+  const [type, setType] = useState('expense')
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState(null)
   const [description, setDescription] = useState('')
@@ -10,7 +10,6 @@ function AddTransaction({ userId, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  // Загружаем категории при открытии
   useEffect(() => {
     async function loadCategories() {
       setLoading(true)
@@ -21,16 +20,13 @@ function AddTransaction({ userId, onClose, onSuccess }) {
     loadCategories()
   }, [])
 
-  // Фильтруем категории по типу
   const filteredCategories = categories.filter((c) => c.type === type)
 
-  // Обработка сохранения
   async function handleSave() {
     if (!amount || parseFloat(amount) <= 0) {
       alert('Введите сумму больше 0')
       return
     }
-
     if (!categoryId) {
       alert('Выберите категорию')
       return
@@ -49,8 +45,8 @@ function AddTransaction({ userId, onClose, onSuccess }) {
     setSaving(false)
 
     if (result) {
-      onSuccess() // Обновить список в App.jsx
-      onClose()   // Закрыть модалку
+      onSuccess()
+      onClose()
     } else {
       alert('Ошибка при сохранении. Попробуйте ещё раз.')
     }
@@ -60,7 +56,6 @@ function AddTransaction({ userId, onClose, onSuccess }) {
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-dark-card border-t border-gold/20 rounded-t-3xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-5">
 
-        {/* Заголовок */}
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gold">
             {type === 'expense' ? '💸 Расход' : '💰 Доход'}
@@ -73,7 +68,6 @@ function AddTransaction({ userId, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Переключатель Расход / Доход */}
         <div className="flex bg-black/40 rounded-2xl p-1">
           <button
             onClick={() => {
@@ -103,7 +97,6 @@ function AddTransaction({ userId, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Поле суммы */}
         <div>
           <label className="text-sm text-gray-400 block mb-2">Сумма</label>
           <input
@@ -116,7 +109,6 @@ function AddTransaction({ userId, onClose, onSuccess }) {
           />
         </div>
 
-        {/* Категории */}
         <div>
           <label className="text-sm text-gray-400 block mb-2">Категория</label>
           {loading ? (
@@ -127,50 +119,39 @@ function AddTransaction({ userId, onClose, onSuccess }) {
                 <button
                   key={cat.id}
                   onClick={() => setCategoryId(cat.id)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-2xl border transition ${
+                  className={`p-3 rounded-2xl border transition flex flex-col items-center gap-1 ${
                     categoryId === cat.id
-                      ? 'bg-gold/20 border-gold'
-                      : 'bg-black/40 border-gold/10 hover:border-gold/30'
+                      ? 'border-gold bg-gold/10'
+                      : 'border-gold/10 bg-black/20'
                   }`}
                 >
-                  <span className="text-3xl">{cat.icon}</span>
-                  <span className="text-xs text-white">{cat.name}</span>
+                  <span className="text-2xl">{cat.icon}</span>
+                  <span className="text-xs text-gray-300">{cat.name}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
 
-        {/* Описание */}
         <div>
-          <label className="text-sm text-gray-400 block mb-2">
-            Описание (необязательно)
-          </label>
+          <label className="text-sm text-gray-400 block mb-2">Комментарий (необязательно)</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Например: продукты в Пятёрочке"
+            placeholder="Например: обед в кафе"
             className="w-full bg-black/40 border border-gold/20 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-gold/60"
           />
         </div>
 
-        {/* Кнопки */}
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-4 rounded-2xl border border-gray-600 text-gray-300 font-semibold"
-          >
-            Отмена
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 py-4 rounded-2xl bg-gold text-black font-bold disabled:opacity-50"
-          >
-            {saving ? 'Сохранение...' : '✅ Сохранить'}
-          </button>
-        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full bg-gold text-black font-bold py-4 rounded-2xl text-lg hover:scale-[1.02] transition active:scale-95 disabled:opacity-50"
+        >
+          {saving ? 'Сохранение...' : 'Сохранить'}
+        </button>
+
       </div>
     </div>
   )
