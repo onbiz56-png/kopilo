@@ -9,16 +9,14 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Данные приложения
   const [balance, setBalance] = useState({ income: 0, expense: 0, balance: 0 })
   const [transactions, setTransactions] = useState([])
   const [showAddModal, setShowAddModal] = useState(false)
 
-  // Инициализация
   useEffect(() => {
     async function init() {
       try {
-        const tg = initTelegram()
+        initTelegram()
         const telegramUser = getTelegramUser()
         setTgUser(telegramUser)
 
@@ -45,11 +43,9 @@ function App() {
         setLoading(false)
       }
     }
-
     init()
   }, [])
 
-  // Загрузка баланса + транзакций
   async function loadData(userId) {
     const [balanceData, transactionsData] = await Promise.all([
       getBalance(userId),
@@ -59,19 +55,16 @@ function App() {
     setTransactions(transactionsData)
   }
 
-  // Обновление после добавления транзакции
   async function handleTransactionAdded() {
     if (user) {
       await loadData(user.id)
     }
   }
 
-  // Форматирование суммы
   function formatMoney(amount) {
     return new Intl.NumberFormat('ru-RU').format(amount)
   }
 
-  // Форматирование даты
   function formatDate(dateString) {
     const date = new Date(dateString)
     const today = new Date()
@@ -87,7 +80,6 @@ function App() {
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
   }
 
-  // === Загрузка ===
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,7 +91,6 @@ function App() {
     )
   }
 
-  // === Ошибка ===
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -116,17 +107,14 @@ function App() {
     )
   }
 
-  // === Главный экран ===
   return (
     <div className="min-h-screen pb-32">
 
-      {/* Шапка с приветствием */}
       <div className="px-6 pt-8 pb-4">
         <p className="text-gray-400 text-sm">Привет, {user.first_name || 'друг'} 👋</p>
         <h1 className="text-2xl font-bold gold-shimmer">Kopilo</h1>
       </div>
 
-      {/* Карточка баланса */}
       <div className="px-6 mb-6">
         <div className="bg-dark-card border border-gold/30 rounded-3xl p-6 space-y-4">
           <p className="text-sm text-gray-400">Баланс</p>
@@ -151,7 +139,6 @@ function App() {
         </div>
       </div>
 
-      {/* Список транзакций */}
       <div className="px-6 space-y-3">
         <h2 className="text-lg font-semibold text-white px-2">История</h2>
 
@@ -167,10 +154,8 @@ function App() {
               key={t.id}
               className="bg-dark-card border border-gold/10 rounded-2xl p-4 flex items-center gap-3"
             >
-              {/* Иконка категории */}
               <div className="text-3xl">{t.categories?.icon || '💰'}</div>
 
-              {/* Инфо */}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold truncate">
                   {t.categories?.name || 'Без категории'}
@@ -180,7 +165,6 @@ function App() {
                 </p>
               </div>
 
-              {/* Сумма */}
               <div className={`font-bold whitespace-nowrap ${
                 t.type === 'income' ? 'text-green-400' : 'text-red-400'
               }`}>
@@ -191,7 +175,6 @@ function App() {
         )}
       </div>
 
-      {/* Плавающая кнопка "+" */}
       <button
         onClick={() => setShowAddModal(true)}
         className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-gold text-black text-4xl font-bold shadow-2xl shadow-gold/40 flex items-center justify-center hover:scale-110 transition active:scale-95"
@@ -199,7 +182,6 @@ function App() {
         +
       </button>
 
-      {/* Модалка добавления */}
       {showAddModal && (
         <AddTransaction
           userId={user.id}
