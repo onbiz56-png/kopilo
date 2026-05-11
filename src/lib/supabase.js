@@ -403,6 +403,48 @@ export async function deleteBudget(budgetId) {
   }
 }
 
+export async function getBudgetSpending(userId, categoryId, period = 'month') {
+  try {
+    // Определяем дату начала периода
+    const now = new Date()
+    let startDate
+
+    if (period === 'week') {
+      startDate = new Date(now)
+      startDate.setDate(now.getDate() - 7)
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    } else if (period === 'year') {
+      startDate = new Date(now.getFullYear(), 0, 1)
+    } else {
+      startDate = new Date(0)
+    }
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('amount')
+      .eq('user_id', userId)
+      .eq('category_id', categoryId)
+      .eq('type', 'expense')
+      .gte('created_at', startDate.toISOString())
+
+    if (error) {
+      console.error('Error fetching budget spending:', error)
+      return 0
+    }
+
+    let total = 0
+    data.forEach((t) => {
+      total += parseFloat(t.amount)
+    })
+
+    return total
+  } catch (err) {
+    console.error('Exception in getBudgetSpending:', err)
+    return 0
+  }
+}
+
 /* 
 ============================
 📊 АНАЛИТИКА (ANALYTICS)
