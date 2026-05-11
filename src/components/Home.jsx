@@ -1,56 +1,48 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { getTransactions, getBalance } from '../lib/supabase'
 import AddTransaction from './AddTransaction'
 
 export default function Home({ userId }) {
   const [transactions, setTransactions] = useState([])
+  const [stats, setStats] = useState({ balance: 0, income: 0, expense: 0 })
+  const [monthStats, setMonthStats] = useState({ income: 0, expense: 0 })
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [stats, setStats] = useState({
-    balance: 0,
-    income: 0,
-    expense: 0
-  })
 
   useEffect(() => {
-    loadData()
+    if (userId) loadData()
   }, [userId])
 
   async function loadData() {
     setLoading(true)
 
+    // Загружаем баланс
+    const balanceData = await getBalance(userId)
+    setStats(balanceData)
+
     // Загружаем транзакции
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+    const txData = await getTransactions(userId)
+    setTransactions(txData)
 
-    if (!error && data) {
-      setTransactions(data)
+    // Считаем статистику за текущий месяц
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-      // Считаем статистику за текущий месяц
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    let monthIncome = 0
+    let monthExpense = 0
 
-      let income = 0
-      let expense = 0
-      let balance = 0
-
-      data.forEach(t => {
-        const tDate = new Date(t.created_at)
+    txData.forEach((t) => {
+      const tDate = new Date(t.created_at)
+      if (tDate >= startOfMonth) {
         if (t.type === 'income') {
-          balance += Number(t.amount)
-          if (tDate >= startOfMonth) income += Number(t.amount)
+          monthIncome += parseFloat(t.amount)
         } else {
-          balance -= Number(t.amount)
-          if (tDate >= startOfMonth) expense += Number(t.amount)
+          monthExpense += parseFloat(t.amount)
         }
-      })
+      }
+    })
 
-      setStats({ balance, income, expense })
-    }
-
+    setMonthStats({ income: monthIncome, expense: monthExpense })
     setLoading(false)
   }
 
@@ -90,9 +82,11 @@ export default function Home({ userId }) {
 
       {/* КАРТОЧКА БАЛАНСА */}
       <div className="bg-gradient-to-br from-gold/20 to-gold/5 border border-gold/30 rounded-3xl p-6 mb-4 backdrop-blur-lg">
-        <p className="text-gray-400 text-sm mb-2">Общий баланс</p>
-        <p className="text-4xl font-bold text-gold mb-1">
-          {formatAmount(stats.balance)} ₽
+        <p className="text-gray-400 text-sm mb-2">💰 Общий баланс</p>
+        <p className={`text-4xl font-bold mb-1 ${
+          stats.balance >= 0 ? 'text-gold' : 'text-red-400'
+        }`}>
+          {stats.balance >= 0 ? '' : '-'}{formatAmount(stats.balance)} ₽
         </p>
         <p className="text-xs text-gray-500">
           {stats.balance >= 0 ? '✨ Отличная работа!' : '⚠️ Контролируй расходы'}
@@ -107,7 +101,7 @@ export default function Home({ userId }) {
             <span className="text-xs text-gray-400">Доходы</span>
           </div>
           <p className="text-lg font-bold text-green-400">
-            +{formatAmount(stats.income)} ₽
+            +{formatAmount(monthStats.income)} ₽
           </p>
           <p className="text-[10px] text-gray-500 mt-1">в этом месяце</p>
         </div>
@@ -118,7 +112,7 @@ export default function Home({ userId }) {
             <span className="text-xs text-gray-400">Расходы</span>
           </div>
           <p className="text-lg font-bold text-red-400">
-            -{formatAmount(stats.expense)} ₽
+            -{formatAmount(monthStats.expense)} ₽
           </p>
           <p className="text-[10px] text-gray-500 mt-1">в этом месяце</p>
         </div>
@@ -159,17 +153,25 @@ export default function Home({ userId }) {
                 className="bg-dark-card border border-gold/10 rounded-2xl p-4 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
-                    t.type === 'income' 
-                      ? 'bg-green-500/10' 
-                      : 'bg-red-500/10'
-                  }`}>
-                    {t.icon || (t.type === 'income' ? '💰' : '💸')}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                    style={{
+                      backgroundColor: t.categories?.color
+                        ? `${t.categories.color}20`
+                        : 'rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    {t.categories?.icon || (t.type === 'income' ? '💰' : '💸')}
                   </div>
                   <div>
                     <p className="text-white font-medium text-sm">
-                      {t.category || 'Без категории'}
+                      {t.categories?.name || 'Без категории'}
                     </p>
+                    {t.description && (
+                      <p className="text-[11px] text-gray-500 truncate max-w-[150px]">
+                        {t.description}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500">
                       {formatDate(t.created_at)}
                     </p>
@@ -191,10 +193,7 @@ export default function Home({ userId }) {
         <AddTransaction
           userId={userId}
           onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
-            setShowAddModal(false)
-            loadData()
-          }}
+          onSuccess={loadData}
         />
       )}
     </div>
